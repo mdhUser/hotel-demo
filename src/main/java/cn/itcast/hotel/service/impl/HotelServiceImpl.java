@@ -19,16 +19,25 @@ import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -55,6 +64,105 @@ public class HotelServiceImpl extends ServiceImpl<HotelMapper, Hotel> implements
         }
     }
 
+    /**
+     * 实现查询酒店过滤
+     *
+     * @param params
+     * @return
+     */
+    @Override
+    public Map<String, List<String>> getFilters(RequestParams params) {
+
+        try {
+            SearchRequest request = getSearchRequest(params);
+
+            //设置桶查询
+            SearchSourceBuilder sourceBuilder = request.source();
+            sourceBuilder.size(0);
+            //请求桶数据
+            String brandCount = "brandCount";
+            String cityCount = "cityCount";
+            String starNameCount = "starNameCount";
+            AggregationBuilders.terms(brandCount).field("brand").size(100);
+            AggregationBuilders.terms(cityCount).field("city").size(100);
+            AggregationBuilders.terms(starNameCount).field("starName").size(100);
+            //获取查询结果
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            //获取聚合结果
+            Aggregations aggregations = response.getAggregations();
+            List<String> brands = getKeys(aggregations, brandCount);
+            List<String> cities = getKeys(aggregations, cityCount);
+            List<String> starNames = getKeys(aggregations, starNameCount);
+            return new HashMap<String, List<String>>() {
+                {
+                    put("brand", brands);
+                    put("city", cities);
+                    put("starName", starNames);
+                }
+            };
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<String> getSuggestions(String prefix) {
+
+        try {
+            SearchRequest request = new SearchRequest("hotel");
+
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+            sourceBuilder.suggest(new SuggestBuilder().addSuggestion("suggestion_field",
+                    SuggestBuilders.completionSuggestion("suggestion")
+                            .prefix(prefix)
+                            .skipDuplicates(true)
+                            .size(20)
+            ));
+
+            request.source(sourceBuilder);
+
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+
+            Suggest suggest = response.getSuggest();
+            CompletionSuggestion suggestion = suggest.getSuggestion("suggestion_field");
+
+            List<CompletionSuggestion.Entry.Option> options = suggestion.getOptions();
+            List<String> suggestList = new ArrayList<>();
+            if (!CollectionUtils.isEmpty(options)) {
+                options.forEach(option -> {
+                    String text = option.getText().toString();
+                    suggestList.add(text);
+                });
+            }
+
+            return suggestList;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 获取桶keys
+     *
+     * @param aggregations
+     * @return
+     */
+    private List<String> getKeys(Aggregations aggregations, String bucketName) {
+        Terms terms = aggregations.get(bucketName);
+        List<? extends Terms.Bucket> buckets = terms.getBuckets();
+        if (!CollectionUtils.isEmpty(buckets)) {
+            return buckets.stream().map(MultiBucketsAggregation.Bucket::getKeyAsString).collect(Collectors.toList());
+        }
+        return null;
+    }
+
+    /**
+     * 请求构建函数
+     *
+     * @param params
+     * @return
+     */
     private SearchRequest getSearchRequest(RequestParams params) {
         //创建请求对象
         SearchRequest request = new SearchRequest("hotel");
