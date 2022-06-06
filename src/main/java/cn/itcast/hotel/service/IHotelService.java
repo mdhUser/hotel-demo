@@ -20,4 +20,9 @@ public interface IHotelService extends IService<Hotel> {
     Map<String, List<String>> getFilters(RequestParams params);
 
     List<String> getSuggestions(String prefix);
+
+    void deleteById(Long id);
+
+    void insertById(Long id);
+
 }
