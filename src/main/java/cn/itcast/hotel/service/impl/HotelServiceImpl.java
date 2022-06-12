@@ -86,9 +86,11 @@ public class HotelServiceImpl extends ServiceImpl<HotelMapper, Hotel> implements
             String brandCount = "brandCount";
             String cityCount = "cityCount";
             String starNameCount = "starNameCount";
-            AggregationBuilders.terms(brandCount).field("brand").size(100);
-            AggregationBuilders.terms(cityCount).field("city").size(100);
-            AggregationBuilders.terms(starNameCount).field("starName").size(100);
+            sourceBuilder.aggregation(AggregationBuilders.terms(brandCount).field("brand").size(100));
+            sourceBuilder.aggregation(AggregationBuilders.terms(cityCount).field("city").size(100));
+            sourceBuilder.aggregation(AggregationBuilders.terms(starNameCount).field("starName").size(100));
+
+            request.source(sourceBuilder);
             //获取查询结果
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
             //获取聚合结果
