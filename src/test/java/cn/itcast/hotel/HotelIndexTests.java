@@ -3,6 +3,7 @@ package cn.itcast.hotel;
 import cn.itcast.hotel.constant.HotelConstants;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -23,7 +24,7 @@ class HotelIndexTests {
 
     @BeforeEach
     void buildClient() {
-        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://47.111.103.239:9200")));
+        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://127.0.0.1:9200")));
     }
 
 
@@ -72,7 +73,7 @@ class HotelIndexTests {
     @Test
     void testDeleteIndex() throws IOException {
         //1.创建求求对象
-        DeleteIndexRequest request = new DeleteIndexRequest("hotel");
+        DeleteIndexRequest request = new DeleteIndexRequest("test");
         //删除库
         client.indices().delete(request, RequestOptions.DEFAULT);
     }

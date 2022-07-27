@@ -34,7 +34,7 @@ public class HotelDocAddTest {
 
     @BeforeEach
     void buildClient() {
-        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://47.111.103.239:9200")));
+        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://127.0.0.1:9200")));
     }
 
     @AfterEach
