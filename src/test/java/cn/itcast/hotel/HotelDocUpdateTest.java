@@ -37,7 +37,7 @@ public class HotelDocUpdateTest {
 
     @BeforeEach
     void buildClient() {
-        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://47.111.103.239:9200")));
+        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://192.168.112.128:9200")));
     }
 
     @AfterEach
@@ -49,7 +49,7 @@ public class HotelDocUpdateTest {
     void testUpdateReq() throws IOException {
 
         //创建增量修改文档请求对象
-        UpdateRequest request = new UpdateRequest("hotel", "60223");
+        UpdateRequest request = new UpdateRequest("hotel", "396189");
 
         //构建请求体
         request.doc("name", "Maxwell's Hotel", "price", "7378");
@@ -76,10 +76,8 @@ public class HotelDocUpdateTest {
             req.source(JSON.toJSONString(doc), XContentType.JSON);
             request.add(req);
         }
-
         //发送
-        client.bulk(request,RequestOptions.DEFAULT);
-
+        client.bulk(request, RequestOptions.DEFAULT);
     }
 
 
