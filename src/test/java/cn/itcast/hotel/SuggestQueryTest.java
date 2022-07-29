@@ -31,7 +31,7 @@ public class SuggestQueryTest {
 
     @BeforeEach
     void before() {
-        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://47.111.103.239:9200")));
+        client = new RestHighLevelClient(RestClient.builder(HttpHost.create("http://192.168.112.128:9200")));
     }
 
     @AfterEach
@@ -43,7 +43,7 @@ public class SuggestQueryTest {
     void testSuggestQuery() throws IOException {
 
         //构建请求对象
-        SearchRequest request = new SearchRequest("test2");
+        SearchRequest request = new SearchRequest("test");
 
         //构建请求资源
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
@@ -53,15 +53,14 @@ public class SuggestQueryTest {
                 .addSuggestion("titleSuggest"
                         , SuggestBuilders.completionSuggestion("title")
                                 .prefix("s")
-                                .skipDuplicates(true))
+                                .skipDuplicates(true)
+                                .size(10))
 
         );
         //设置数据
         request.source(sourceBuilder);
-
         //获取响应结果
         SearchResponse response = client.search(request, RequestOptions.DEFAULT);
-
         //解析自动填充内容
         Suggest suggest = response.getSuggest();
         CompletionSuggestion suggestion = suggest.getSuggestion("titleSuggest");

@@ -15,6 +15,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.lucene.search.function.CombineFunction;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -53,13 +54,11 @@ public class HotelServiceImpl extends ServiceImpl<HotelMapper, Hotel> implements
 
     @Override
     public PageResult search(RequestParams params) {
-
         try {
             //创建请求对象
             SearchRequest request = getSearchRequest(params);
             //获取响应对象
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
-
             //解析响应
             return parseResponse(response);
         } catch (IOException e) {
@@ -131,19 +130,15 @@ public class HotelServiceImpl extends ServiceImpl<HotelMapper, Hotel> implements
 
             Suggest suggest = response.getSuggest();
             CompletionSuggestion suggestion = suggest.getSuggestion("suggestion_field");
-
-            List<CompletionSuggestion.Entry.Option> options = suggestion.getOptions();
-            List<String> suggestList = new ArrayList<>();
-            if (!CollectionUtils.isEmpty(options)) {
-                options.forEach(option -> {
-                    String text = option.getText().toString();
-                    suggestList.add(text);
-                });
+            List<String> suggestList = Collections.emptyList();
+            if (!CollectionUtils.isEmpty(suggestion.getOptions())) {
+                suggestList = suggestion.getOptions().stream().map(s ->
+                        s.getText().toString()
+                ).collect(Collectors.toList());
             }
-
             return suggestList;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -236,14 +231,13 @@ public class HotelServiceImpl extends ServiceImpl<HotelMapper, Hotel> implements
                                 ScoreFunctionBuilders.weightFactorFunction(10)
                         )
                 }
-        );
+        ).boostMode(CombineFunction.MULTIPLY);
 
         sourceBuilder.query(scoreQuery);
         //构建分页
         int from = (params.getPage() - 1) * params.getSize();
         sourceBuilder.from(from);
         sourceBuilder.size(params.getSize());
-
         //设置排序
         if (!StringUtils.isEmpty(params.getLocation())) {
             sourceBuilder.sort(SortBuilders.geoDistanceSort("location", new GeoPoint(params.getLocation())).unit(DistanceUnit.KILOMETERS).order(SortOrder.ASC));
